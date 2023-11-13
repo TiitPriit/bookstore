@@ -7,17 +7,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $title = $_POST["title"];
     $release_date = $_POST["release_date"];
     $price = $_POST["price"];
+    $author_id = $_POST["author_id"];
 
     $stmt = $pdo->prepare('UPDATE books SET title = :title, release_date = :release_date, price = :price WHERE id = :id');
     $stmt->execute(['title' => $title, 'release_date' => $release_date, 'price' => $price, 'id' => $id]);
+
+    $stmt = $pdo->prepare('UPDATE book_authors SET author_id = :author_id WHERE book_id = :id');
+    $stmt->execute(['author_id' => $author_id, 'id' => $id]);
 
     header("Location: book.php?id=$id");
     exit();
 }
 
-$stmt = $pdo->prepare('SELECT * FROM books WHERE id = :id');
+$stmt = $pdo->prepare('SELECT books.*, CONCAT(authors.first_name, " ", authors.last_name) as author_name FROM books JOIN book_authors ON books.id = book_authors.book_id JOIN authors ON book_authors.author_id = authors.id WHERE books.id = :id');
 $stmt->execute(['id' => $id]);
 $book = $stmt->fetch();
+
+$stmt = $pdo->query('SELECT *, CONCAT(first_name, " ", last_name) as name FROM authors');
+$authors = $stmt->fetchAll();
 
 ?>
 
@@ -38,6 +45,15 @@ $book = $stmt->fetch();
 
         <label for="price">Price:</label>
         <input type="text" name="price" value="<?= number_format($book["price"], 2); ?>"><br><br>
+
+        <label for="author_id">Author:</label>
+        <select name="author_id">
+            <?php foreach ($authors as $author): ?>
+                <option value="<?= $author['id']; ?>" <?= $author['id'] == $book['author_id'] ? 'selected' : ''; ?>>
+                    <?= $author['name']; ?>
+                </option>
+            <?php endforeach; ?>
+        </select><br><br>
 
         <input type="submit" value="Save">
     </form>
